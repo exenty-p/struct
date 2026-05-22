@@ -1,0 +1,271 @@
+#include <iostream>
+#include <string>
+#include <limits>
+#include <iomanip>
+#include <fstream>
+
+using namespace std;
+
+enum MountType {
+	volcanic,
+	folded,
+	plateau,
+	other
+};
+
+struct CountryInfo {
+	string countryName;
+	string continent;
+};
+
+struct MountainPeak {
+	string name;
+	double height;
+	CountryInfo location;
+	MountType type;
+
+};
+
+string MountainTypeString(MountType type) {
+	switch (type) {
+	case volcanic: return "Вулканическая";
+	case folded: return "Складчатая";
+	case plateau: return "Платообразная";
+	case other: return "Другая";
+	}
+};
+
+MountType stringMountainType(const string& str) {
+	if (str == "Вулканическая" || str == "volcanic") return volcanic;
+	if (str == "Складчатая" || str == "folded") return folded;
+	if (str == "Платообразная" || str == "plateau") return plateau;
+	if (str == "Другая" || str == "other") return other;
+}
+
+void printPeakInfo(const MountainPeak& peak) {
+	std::cout << std::left << std::setw(15) << peak.name
+		<< std::setw(8) << peak.height
+		<< std::setw(20) << peak.location.countryName
+		<< MountainTypeString(peak.type) << std::endl;
+}
+
+void saveTextToFile(MountainPeak peaks[], int size, const string& filename) {
+	ofstream fout(filename);
+	if (!fout.is_open()) {
+		cout << "Ошибка чтения: " << filename << endl;
+		return;
+	}
+
+	for (int i = 0; i < size; i++) {
+		fout << peaks[i].name << "\n";
+		fout << peaks[i].height << "\n";
+		fout << peaks[i].location.countryName << "\n";
+		fout << peaks[i].location.continent << "\n";
+		fout << MountainTypeString(peaks[i].type) << "\n";
+	}
+	fout.close();
+}
+
+int loadFromFile(MountainPeak peaks[], int maxSize, const string& filename) {
+	ifstream fin(filename);
+	if (!fin.is_open()) {
+		cout << "Ошибка открытия: " << filename << endl;
+		return 0;
+	}
+
+	int counter = 0;
+	string str;
+
+	while (counter < maxSize && !fin.eof()) {
+		getline(fin, peaks[counter].name);
+		if (peaks[counter].name.empty()) break;
+
+		fin >> peaks[counter].height;
+		fin.ignore();
+
+		getline(fin, peaks[counter].location.countryName);
+		getline(fin, peaks[counter].location.continent);
+		getline(fin, str);
+
+		peaks[counter].type = stringMountainType(str);
+		counter++;
+	}
+
+	fin.close();
+	cout << "Данные файла " << filename << "считаны" << endl;
+	cout << "Вершин считано: " << counter << endl;
+	return counter;
+}
+
+double AvgHeight(const MountainPeak peaks[], int size) {
+	double sum = 0;
+	for (int i = 0; i < size; i++) {
+		sum += peaks[i].height;
+	}
+	return sum / size;
+}
+
+void HeightSort(MountainPeak peaks[], int size) {
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size - i - 1; j++) {
+			if (peaks[j].height < peaks[j + 1].height) {
+				MountainPeak temp = peaks[j];
+				peaks[j] = peaks[j + 1];
+				peaks[j + 1] = temp;
+			}
+		}
+	}
+}
+
+void printEightThousadCountries(const MountainPeak peaks[], int size) {
+	cout << "Страны с горами восьмитысячниками" << endl;
+	cout << left << setw(20) << "Название" << setw(10) << "Высота" << "Страна" << endl;
+	int counter = 0;
+	for (int i = 0; i < size; i++) {
+		if (peaks[i].height > 8000) {
+			cout << left << setw(20) << peaks[i].name << setw(10) << peaks[i].height << peaks[i].location.countryName << endl;
+			counter++;
+		}
+	}
+	if (counter == 0) {
+		cout << "Восьмитысячников не найдено" << endl;
+	}
+	cout << "Найдено: " << counter << " восьмитысячников" << endl;
+}
+
+bool changePeakData(MountainPeak peaks[], int size, const string& name, double newHeight, MountType newType) {
+	for (int i = 0; i < size; i++) {
+		if (peaks[i].name == name) {
+			peaks[i].height = newHeight;
+			peaks[i].type = newType;
+			return true;
+		}
+	}
+	return false;
+}
+
+int CountryFilter(const MountainPeak peaks[], int size, MountainPeak result[], const string& country) {
+	int counter = 0;
+	for (int i = 0; i < size; i++) {
+		if (peaks[i].location.countryName.find(country) != string::npos) {
+			result[counter++] = peaks[i];
+		}
+	}
+	return counter;
+}
+
+void printFilteredPeaks(const MountainPeak peaks[], int size, const string& filterName) {
+	cout << endl << filterName << endl;
+	if (size == 0){ 
+		cout << "Вершины отсутствуют" << endl; 
+		return;
+	}
+
+	cout << "Название вершины" << "Высота" << "Страна" << "Тип горы" << endl;
+
+	for (int i = 0; i < size; i++) {
+		printPeakInfo(peaks[i]);
+	}
+	cout << "\nНайдено: " << size << "вершин" << endl;
+}
+
+int PeaksMassive(MountainPeak peaks[]) {
+	int i = 0;
+
+	peaks[i++] = { "Эверест", 8848, {"Непал/Китай", "Азия"}, folded };
+	peaks[i++] = { "K2", 8611, {"Пакистан/Китай", "Азия"}, folded };
+	peaks[i++] = { "Канченджанга", 8586, {"Непал/Индия", "Азия"}, folded };
+	peaks[i++] = { "Лхоцзе", 8516, {"Непал/Китай", "Азия"}, plateau };
+	peaks[i++] = { "Макалу", 8485, {"Непал/Китай", "Азия"}, folded };
+	peaks[i++] = { "Чо-Ойю", 8188, {"Непал/Китай", "Азия"}, folded };
+	peaks[i++] = { "Дхаулагири", 8167, {"Непал", "Азия"}, folded };
+	peaks[i++] = { "Манаслу", 8163, {"Непал", "Азия"}, plateau };
+	peaks[i++] = { "Нангапарбат", 8126, {"Пакистан", "Азия"}, folded };
+	peaks[i++] = { "Аннапурна I", 8091, {"Непал", "Азия"}, folded };
+	peaks[i++] = { "Гашербрум I", 8080, {"Пакистан/Китай", "Азия"}, folded };
+	peaks[i++] = { "Броуд-пик", 8051, {"Пакистан/Китай", "Азия"}, folded };
+	peaks[i++] = { "Гашербрум II", 8034, {"Пакистан/Китай", "Азия"}, folded };
+	peaks[i++] = { "Шишапангма", 8027, {"Китай", "Азия"}, folded };
+	peaks[i++] = { "Килиманджаро", 5895, {"Танзания", "Африка"}, volcanic };
+	peaks[i++] = { "Аконкагуа", 6962, {"Аргентина", "Южная Америка"}, folded };
+	peaks[i++] = { "Денали", 6190, {"США", "Северная Америка"}, other };
+	peaks[i++] = { "Эльбрус", 5642, {"Россия", "Европа"}, volcanic };
+	peaks[i++] = { "Монблан", 4809, {"Франция/Италия", "Европа"}, folded };
+	peaks[i++] = { "Фудзи", 3776, {"Япония", "Азия"}, volcanic };
+
+	return i;
+}
+
+int main() {
+	setlocale(LC_ALL, "Russian");
+
+	MountainPeak peaks[20];
+	MountainPeak filteredPeaks[20];
+
+	int size = PeaksMassive(peaks);
+
+	cout << "Все горные вершины" << endl;
+
+	cout << "Название" << "Высота" << "Страна" << "Тип горы" << endl;
+
+	cout << "----------------------------------------------" << endl;
+
+	for (int i = 0; i < size; i++) {
+		printPeakInfo(peaks[i]);
+	}
+
+	cout << "Запись в текстовый файл" << endl;
+	saveTextToFile(peaks, size, "mountanins.txt");
+
+	cout << "Чтение из текстового файла" << endl;
+	int loadsize = loadFromFile(filteredPeaks, 20, "mountains.txt");
+
+
+	double AverageHeight = AvgHeight(peaks, size);
+	cout << "Среднее значение высот" << endl;
+	cout << "Средняя высота: " << AverageHeight << "метров" << endl;
+
+	HeightSort(peaks, size);
+
+	cout << "Вершины, отсортированные по высоте" << endl;
+	cout << "Название" << "Высота" << "Страна" << "Тип горы" << endl;
+	for (int i = 0; i < size; i++) {
+		printPeakInfo(peaks[i]);
+	 }
+
+	printEightThousadCountries(peaks, size);
+
+	cout << "Изменение данных" << endl;
+	string changeName;
+	cout << "Введите название вершины, которую хотите изменить: ";
+	getline(cin, changeName);
+	double newHeight;
+	cout << "Введите новую высоту: ";
+	cin >> newHeight;
+	int newType;
+	cout << "Введите тип горы (0 - Вулканическая, 1 - Складчатая, 2 - Платообразная, 3 - другая): ";
+	cin >> newType;
+
+	cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+	if (changePeakData(peaks, size, changeName, newHeight, static_cast<MountType>(newType))) {
+		cout << "Данные изменены" << endl;
+	}
+	else {
+		cout << "Вершина не найдена" << endl;
+	}
+
+	cout << "Фильтрация по стране" << endl;
+	string country;
+	cout << "Введите название страны для фильтрации: ";
+	getline(cin, country);
+
+	int filteredCount = CountryFilter(peaks, size, filteredPeaks, country);
+
+	printFilteredPeaks(filteredPeaks, filteredCount, "Вершины в старне: " + country);
+
+	return 0;
+
+}
+
+
